@@ -1,2 +1,1 @@
-# terraform-provider-krok
-A terraform provided for Krok.
+# Krok Terraform Provider
