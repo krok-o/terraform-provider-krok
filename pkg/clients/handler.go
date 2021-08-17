@@ -145,7 +145,11 @@ func (p *KrokHandler) authenticate() (string, error) {
 	var result models.TokenResponse
 	resp, err := p.Send(req, &result)
 	if err != nil {
-		p.Logger.Debug().Err(err).Int("code", resp.StatusCode).Msg("failed to authenticate")
+		var code int
+		if resp != nil {
+			code = resp.StatusCode
+		}
+		p.Logger.Debug().Err(err).Int("code", code).Msg("failed to authenticate")
 		return "", err
 	}
 	if resp.StatusCode < 200 || resp.StatusCode > 299 {

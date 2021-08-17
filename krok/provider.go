@@ -40,6 +40,7 @@ func Provider() *schema.Provider {
 		},
 		ResourcesMap: map[string]*schema.Resource{
 			"krok_repository": resourceRepository(),
+			"krok_command":    resourceCommand(),
 		},
 		DataSourcesMap: map[string]*schema.Resource{
 			"krok_command":   dataSourceKrokCommand(),
@@ -62,5 +63,5 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		Email:        d.Get("email").(string),
 	}, log)
 
-	return &client, nil
+	return client, nil
 }

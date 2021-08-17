@@ -47,8 +47,8 @@ func NewKrokClient(cfg Config, log zerolog.Logger) *KrokClient {
 		APIKeyID:     cfg.APIKeyID,
 		APIKeySecret: cfg.APIKeySecret,
 		Address:      cfg.Address,
-		Client:       &http.Client{},
 		Email:        cfg.Email,
+		Client:       http.DefaultClient,
 		Logger:       log,
 	})
 	apiKeyClient := auth.NewClient(cfg.Address, log, handler)

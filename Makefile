@@ -2,7 +2,7 @@ SHELL = bash
 PROJECT := terraform-provider-krok
 VERSION ?= v0.0.1
 
-all: binaries check
+all: binaries
 
 clean:
 	rm -Rf bin

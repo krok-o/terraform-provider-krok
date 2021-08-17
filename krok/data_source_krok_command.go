@@ -34,7 +34,7 @@ func dataSourceKrokCommand() *schema.Resource {
 	}
 }
 
-// dataSourceKrokCommandRead reloads the resource object from the terraform store.
+// dataSourceKrokCommandRead reloads the resource object from the Terraform store.
 func dataSourceKrokCommandRead(data *schema.ResourceData, m interface{}) error {
 	client := m.(*pkg.KrokClient)
 	cid := data.Get(commandIdFieldName).(int)
@@ -52,7 +52,7 @@ func dataSourceKrokCommandRead(data *schema.ResourceData, m interface{}) error {
 	return nil
 }
 
-// flattenCommandObject creates a map from an Krok Command for easy digestion by the terraform schema.
+// flattenCommandObject creates a map from an Krok Command for easy digestion by the Terraform schema.
 func flattenCommandObject(command *models.Command) map[string]interface{} {
 	return map[string]interface{}{
 		commandIdFieldName:   command.ID,

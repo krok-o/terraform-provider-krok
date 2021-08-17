@@ -37,6 +37,14 @@ func resourceRepository() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 			},
+			repoURLFieldName: {
+				Type:     schema.TypeString,
+				Required: true,
+			},
+			repoVCSFieldName: {
+				Type:     schema.TypeInt,
+				Required: true,
+			},
 			repoCommandsFieldName: {
 				Type:     schema.TypeList,
 				Optional: true,
@@ -88,12 +96,21 @@ func resourceRepositoryCreate(d *schema.ResourceData, m interface{}) error {
 	if err != nil {
 		return err
 	}
-	if repo, err := client.RepositoryClient.Create(expandedRepo); err != nil {
+	repo, err := client.RepositoryClient.Create(expandedRepo)
+	if err != nil {
 		log.Println("Failed to create repository.")
-		return err
-	} else {
-		d.SetId(strconv.Itoa(repo.ID))
+		return fmt.Errorf("failed to create repository: %w", err)
 	}
+
+	// add any relationships that might exist for commands.
+	for _, c := range repo.Commands {
+		if err := client.CommandClient.AddRelationshipToRepository(c.ID, repo.ID); err != nil {
+			log.Println("Failed to create relationship for command and repository.")
+			return fmt.Errorf("failed to add relationship between command %d and repo %d: %w", c.ID, repo.ID, err)
+		}
+	}
+
+	d.SetId(strconv.Itoa(repo.ID))
 	return resourceRepositoryRead(d, m)
 }
 
@@ -107,7 +124,7 @@ type gitlabFields struct {
 	projectID int
 }
 
-// expandRepositoryResource creates a Krok repository structure out of a terraform schema model.
+// expandRepositoryResource creates a Krok repository structure out of a Terraform schema model.
 func expandRepositoryResource(client *pkg.KrokClient, d *schema.ResourceData) (*models.Repository, error) {
 	var (
 		name   string
@@ -158,7 +175,7 @@ func expandRepositoryResource(client *pkg.KrokClient, d *schema.ResourceData) (*
 	return repo, nil
 }
 
-// expandAuth gathers security data from the terraform store
+// expandAuth gathers auth data from the Terraform store
 func expandAuth(s []interface{}) (auth authFields, err error) {
 	for _, v := range s {
 		item := v.(map[string]interface{})
@@ -171,7 +188,7 @@ func expandAuth(s []interface{}) (auth authFields, err error) {
 	return
 }
 
-// expandAuth gathers security data from the terraform store
+// expandAuth gathers gitlab data from the Terraform store
 func expandGitlab(s []interface{}) (gitlab gitlabFields, err error) {
 	for _, v := range s {
 		item := v.(map[string]interface{})
@@ -238,7 +255,7 @@ func flattenRepository(repo *models.Repository) map[string]interface{} {
 	return map[string]interface{}{}
 }
 
-// flattenAuth takes the auth part of a repositroy and creates a sub map for terraform schema.
+// flattenAuth takes the auth part of a repository and creates a sub map for terraform schema.
 func flattenAuth(repo *models.Repository) []interface{} {
 	return []interface{}{
 		map[string]interface{}{
@@ -247,7 +264,7 @@ func flattenAuth(repo *models.Repository) []interface{} {
 	}
 }
 
-// flattenGitlab takes the gitlab part of a repositroy and creates a sub map for terraform schema.
+// flattenGitlab takes the gitlab part of a repository and creates a sub map for terraform schema.
 func flattenGitlab(repo *models.Repository) []interface{} {
 	return []interface{}{
 		map[string]interface{}{
@@ -274,9 +291,50 @@ func resourceRepositoryUpdate(d *schema.ResourceData, m interface{}) error {
 		repo.Name = d.Get(repoNameFieldName).(string)
 	}
 
+	// If there was a change in the command list, either find a way to see
+	// the diff, or, look through all relationships of the repo and
+	// add what's missing and delete what has been deleted.
+	// compare repo.Commands with the IDs in commands.
+	if d.HasChange(repoCommandsFieldName) {
+		commands := d.Get(repoCommandsFieldName).([]int)
+		// checking any additions
+		for _, cid := range commands {
+			contains := false
+			for _, c := range repo.Commands {
+				if c.ID == cid {
+					contains = true
+					break
+				}
+			}
+			if !contains {
+				if err := client.CommandClient.AddRelationshipToRepository(cid, repo.ID); err != nil {
+					log.Println("failed to add new command relationship")
+					return fmt.Errorf("failed to add command %d to repository %d: %w", cid, repo.ID, err)
+				}
+			}
+		}
+
+		// checking any deletions
+		for _, c := range repo.Commands {
+			for _, cid := range commands {
+				contains := false
+				if c.ID == cid {
+					contains = true
+					break
+				}
+				if !contains {
+					if err := client.CommandClient.RemoveRelationshipToRepository(cid, repo.ID); err != nil {
+						log.Println("failed to remove command relationship")
+						return fmt.Errorf("failed to remove command %d from repository %d: %w", cid, repo.ID, err)
+					}
+				}
+			}
+		}
+	}
+
 	if res, err := client.RepositoryClient.Update(repo); err != nil {
-		log.Println("Failed to update repositroy")
-		return err
+		log.Println("Failed to update repository")
+		return fmt.Errorf("failed to update repository: %w", err)
 	} else {
 		d.SetId(strconv.Itoa(res.ID))
 	}
