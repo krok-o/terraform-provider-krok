@@ -158,7 +158,7 @@ func expandRepositoryResource(client *pkg.KrokClient, d *schema.ResourceData) (*
 		},
 	}
 	if v, ok := d.GetOk(repoCommandsFieldName); ok {
-		commands, err := expandCommands(client, v.([]int))
+		commands, err := expandCommands(client, v.([]interface{}))
 		if err != nil {
 			return nil, err
 		}
@@ -202,9 +202,9 @@ func expandGitlab(s []interface{}) (gitlab gitlabFields, err error) {
 }
 
 // expandCommands gathers all commands for which the IDs have been defined.
-func expandCommands(client *pkg.KrokClient, s []int) (commands []*models.Command, err error) {
+func expandCommands(client *pkg.KrokClient, s []interface{}) (commands []*models.Command, err error) {
 	for _, v := range s {
-		command, err := client.CommandClient.Get(v)
+		command, err := client.CommandClient.Get(v.(int))
 		if err != nil {
 			return nil, fmt.Errorf("failed to retrieve command with id %d with error: %w", v, err)
 		}
@@ -296,7 +296,7 @@ func resourceRepositoryUpdate(d *schema.ResourceData, m interface{}) error {
 	// add what's missing and delete what has been deleted.
 	// compare repo.Commands with the IDs in commands.
 	if d.HasChange(repoCommandsFieldName) {
-		commands := d.Get(repoCommandsFieldName).([]int)
+		commands := d.Get(repoCommandsFieldName).([]interface{})
 		// checking any additions
 		for _, cid := range commands {
 			contains := false
@@ -307,9 +307,9 @@ func resourceRepositoryUpdate(d *schema.ResourceData, m interface{}) error {
 				}
 			}
 			if !contains {
-				if err := client.CommandClient.AddRelationshipToRepository(cid, repo.ID); err != nil {
+				if err := client.CommandClient.AddRelationshipToRepository(cid.(int), repo.ID); err != nil {
 					log.Println("failed to add new command relationship")
-					return fmt.Errorf("failed to add command %d to repository %d: %w", cid, repo.ID, err)
+					return fmt.Errorf("failed to add command %d to repository %d: %w", cid.(int), repo.ID, err)
 				}
 			}
 		}
@@ -323,7 +323,7 @@ func resourceRepositoryUpdate(d *schema.ResourceData, m interface{}) error {
 					break
 				}
 				if !contains {
-					if err := client.CommandClient.RemoveRelationshipToRepository(cid, repo.ID); err != nil {
+					if err := client.CommandClient.RemoveRelationshipToRepository(cid.(int), repo.ID); err != nil {
 						log.Println("failed to remove command relationship")
 						return fmt.Errorf("failed to remove command %d from repository %d: %w", cid, repo.ID, err)
 					}
