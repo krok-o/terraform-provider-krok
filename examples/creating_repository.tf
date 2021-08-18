@@ -7,6 +7,14 @@ provider "krok" {
 }
 
 /*
+ * Create github platform token.
+ */
+resource "krok_platform" "github" {
+  platform_id = 1
+  token = "token"
+}
+
+/*
  * Create a Slack notification command.
  */
 resource "krok_command" "slack_notification" {

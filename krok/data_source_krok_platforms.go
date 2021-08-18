@@ -1,11 +1,6 @@
 package krok
 
 import (
-	"fmt"
-	"strings"
-	"sync/atomic"
-	"time"
-
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 
 	"github.com/krok-o/krok/pkg/models"
@@ -75,14 +70,4 @@ func flattenPlatformsObject(platforms []models.Platform) map[string]interface{} 
 	return map[string]interface{}{
 		platformsPlatformsFieldName: ret,
 	}
-}
-
-// counter is keeping track of the generated resources in an atomic way.
-// This will result in unique ids even with multiple terraform calls.
-var counter uint64
-
-func uniqueResourceID() string {
-	ts := strings.ReplaceAll(time.Now().Format("200601020405.000000"), ".", "")
-	atomic.AddUint64(&counter, 1)
-	return fmt.Sprintf("%s%05d", ts, counter)
 }
