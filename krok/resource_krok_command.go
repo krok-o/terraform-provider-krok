@@ -47,7 +47,7 @@ func resourceCommand() *schema.Resource {
 			},
 			commandResourceEnabledFieldName: {
 				Type:     schema.TypeBool,
-				Optional: true,
+				Required: true,
 			},
 			commandResourceFilenameFieldName: {
 				Type:     schema.TypeString,
@@ -113,16 +113,22 @@ func expandCommandResource(d *schema.ResourceData) (*models.Command, error) {
 		name     string
 		url      string
 		schedule string
+		enabled  bool
 	)
 	if v, ok := d.GetOk(commandResourceNameFieldName); ok {
 		name = v.(string)
 	} else {
-		return nil, fmt.Errorf("unable to find parse field %s", commandResourceNameFieldName)
+		return nil, fmt.Errorf("unable to find or parse field %s", commandResourceNameFieldName)
 	}
 	if v, ok := d.GetOk(commandResourceURLFieldName); ok {
 		url = v.(string)
 	} else {
-		return nil, fmt.Errorf("unable to find parse field %s", commandResourceURLFieldName)
+		return nil, fmt.Errorf("unable to find or parse field %s", commandResourceURLFieldName)
+	}
+	if v, ok := d.GetOk(commandResourceEnabledFieldName); ok {
+		enabled = v.(bool)
+	} else {
+		return nil, fmt.Errorf("unable to find or parse field %s", commandResourceEnabledFieldName)
 	}
 	if v, ok := d.GetOk(commandResourceScheduleFieldName); ok {
 		schedule = v.(string)
@@ -131,6 +137,7 @@ func expandCommandResource(d *schema.ResourceData) (*models.Command, error) {
 		Name:     name,
 		URL:      url,
 		Schedule: schedule,
+		Enabled:  enabled,
 	}
 	return command, nil
 }
