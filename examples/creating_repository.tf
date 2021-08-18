@@ -12,6 +12,7 @@ provider "krok" {
 resource "krok_command" "slack_notification" {
   name = "slack-notification"
   url = "https://github.com/krok-o/plugins/releases/download/v0.1.0/slack-notification.tar.gz"
+  platforms = [1]
 }
 
 /*
@@ -25,4 +26,5 @@ resource "krok_repository" "skarlso_test" {
     secret = "secret"
   }
   commands = [krok_command.slack_notification.id]
+  events = ["push"]
 }

@@ -18,6 +18,7 @@ const (
 	repoURLFieldName             = "url"
 	repoVCSFieldName             = "vcs"
 	repoGitlabFieldName          = "gitlab"
+	repoEventsFieldName          = "events"
 	repoGitlabProjectIDFieldName = "project_id"
 	repoAuthFieldName            = "auth"
 	repoAuthSecretFieldName      = "secret"
@@ -34,53 +35,69 @@ func resourceRepository() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			repoNameFieldName: {
-				Type:     schema.TypeString,
-				Required: true,
+				Type:        schema.TypeString,
+				Description: "Name of the repository.",
+				Required:    true,
 			},
 			repoURLFieldName: {
-				Type:     schema.TypeString,
-				Required: true,
+				Type:        schema.TypeString,
+				Description: "The URL to the repository.",
+				Required:    true,
 			},
 			repoVCSFieldName: {
-				Type:     schema.TypeInt,
-				Required: true,
+				Type:        schema.TypeInt,
+				Description: "ID of the platform this repository is located on.",
+				Required:    true,
 			},
 			repoCommandsFieldName: {
-				Type:     schema.TypeList,
-				Optional: true,
+				Type:        schema.TypeList,
+				Description: "List of IDs of commands that this repository should run in case of an event.",
+				Optional:    true,
 				Elem: &schema.Schema{
 					Type: schema.TypeInt,
 				},
 			},
+			repoEventsFieldName: {
+				Type:        schema.TypeList,
+				Description: "Events to which this repository subscribes to. Exp: push for Github.",
+				Required:    true,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+			},
 
 			repoAuthFieldName: {
-				Type:     schema.TypeList,
-				Required: true,
-				MaxItems: 1,
+				Type:        schema.TypeList,
+				Required:    true,
+				MaxItems:    1,
+				Description: "Contains sensitive information.",
 				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
 					return old == "1" && new == "0"
 				},
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						repoAuthSecretFieldName: {
-							Type:     schema.TypeString,
-							Required: true,
+							Type:        schema.TypeString,
+							Description: "The secret of the webhook that is generated for verification.",
+							Required:    true,
 						},
 					},
 				},
 			},
 			repoGitlabFieldName: {
-				Type:     schema.TypeList,
-				Optional: true,
-				MaxItems: 1,
+				Type:        schema.TypeList,
+				Optional:    true,
+				Description: "In case of gitlab platform these are gitlab specific settings.",
+				MaxItems:    1,
 				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
 					return old == "1" && new == "0"
 				},
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						repoGitlabProjectIDFieldName: {
-							Type:     schema.TypeInt,
-							Required: true,
+							Type:        schema.TypeInt,
+							Description: "ID of the Gitlab project.",
+							Required:    true,
 						},
 					},
 				},
@@ -133,21 +150,29 @@ func expandRepositoryResource(client *pkg.KrokClient, d *schema.ResourceData) (*
 		gitlab gitlabFields
 		auth   authFields
 		err    error
+		events []string
 	)
 	if v, ok := d.GetOk(repoNameFieldName); ok {
 		name = v.(string)
 	} else {
-		return nil, fmt.Errorf("unable to find parse field %s", repoNameFieldName)
+		return nil, fmt.Errorf("unable to find or parse field %s", repoNameFieldName)
 	}
 	if v, ok := d.GetOk(repoURLFieldName); ok {
 		url = v.(string)
 	} else {
-		return nil, fmt.Errorf("unable to find parse field %s", repoURLFieldName)
+		return nil, fmt.Errorf("unable to find or parse field %s", repoURLFieldName)
 	}
 	if v, ok := d.GetOk(repoAuthFieldName); ok {
 		if auth, err = expandAuth(v.([]interface{})); err != nil {
 			return nil, err
 		}
+	}
+	if v, ok := d.GetOk(repoEventsFieldName); ok {
+		for _, e := range v.([]interface{}) {
+			events = append(events, e.(string))
+		}
+	} else {
+		return nil, fmt.Errorf("unable to find or parse field %s", repoEventsFieldName)
 	}
 	repo := &models.Repository{
 		Name: name,
@@ -156,6 +181,7 @@ func expandRepositoryResource(client *pkg.KrokClient, d *schema.ResourceData) (*
 		Auth: &models.Auth{
 			Secret: auth.secret,
 		},
+		Events: events,
 	}
 	if v, ok := d.GetOk(repoCommandsFieldName); ok {
 		commands, err := expandCommands(client, v.([]interface{}))
@@ -238,7 +264,7 @@ func resourceRepositoryRead(d *schema.ResourceData, m interface{}) error {
 
 // flattenRepository creates a map from a repository for easy storage on terraform.
 func flattenRepository(repo *models.Repository) map[string]interface{} {
-	commands := make([]int, 0)
+	var commands []int
 	for _, c := range repo.Commands {
 		commands = append(commands, c.ID)
 	}
@@ -248,6 +274,7 @@ func flattenRepository(repo *models.Repository) map[string]interface{} {
 		repoVCSFieldName:      repo.VCS,
 		repoAuthFieldName:     flattenAuth(repo),
 		repoCommandsFieldName: commands,
+		repoEventsFieldName:   repo.Events,
 	}
 	if repo.GitLab != nil {
 		flatRepo[repoGitlabFieldName] = flattenGitlab(repo)
@@ -330,6 +357,15 @@ func resourceRepositoryUpdate(d *schema.ResourceData, m interface{}) error {
 				}
 			}
 		}
+	}
+
+	if d.HasChange(repoEventsFieldName) {
+		var events []string
+		updatedEvents := d.Get(repoEventsFieldName).([]interface{})
+		for _, e := range updatedEvents {
+			events = append(events, e.(string))
+		}
+		repo.Events = events
 	}
 
 	if res, err := client.RepositoryClient.Update(repo); err != nil {
