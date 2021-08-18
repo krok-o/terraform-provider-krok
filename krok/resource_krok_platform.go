@@ -20,6 +20,7 @@ func resourcePlatform() *schema.Resource {
 	return &schema.Resource{
 		Create: resourcePlatformCreate,
 		Read:   resourcePlatformRead,
+		Update: resourcePlatformUpdate,
 		Delete: resourcePlatformDelete,
 
 		Schema: map[string]*schema.Schema{
@@ -71,6 +72,11 @@ func expandVCSTokenResource(d *schema.ResourceData) (*models.VCSToken, error) {
 		VCS:   vcs,
 	}
 	return platform, nil
+}
+
+// resourcePlatformUpdate updates platform information from terraform stores.
+func resourcePlatformUpdate(d *schema.ResourceData, m interface{}) error {
+	return nil
 }
 
 // resourcePlatformRead retrieves platform information from terraform stores.
