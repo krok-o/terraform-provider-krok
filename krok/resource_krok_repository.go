@@ -162,6 +162,11 @@ func expandRepositoryResource(client *pkg.KrokClient, d *schema.ResourceData) (*
 	} else {
 		return nil, fmt.Errorf("unable to find or parse field %s", repoURLFieldName)
 	}
+	if v, ok := d.GetOk(repoVCSFieldName); ok {
+		vcs = v.(int)
+	} else {
+		return nil, fmt.Errorf("unable to find or parse field %s", repoVCSFieldName)
+	}
 	if v, ok := d.GetOk(repoAuthFieldName); ok {
 		if auth, err = expandAuth(v.([]interface{})); err != nil {
 			return nil, err
