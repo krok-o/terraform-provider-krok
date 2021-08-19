@@ -43,9 +43,10 @@ func Provider() *schema.Provider {
 			},
 		},
 		ResourcesMap: map[string]*schema.Resource{
-			"krok_repository": resourceRepository(),
-			"krok_command":    resourceCommand(),
-			"krok_platform":   resourcePlatform(),
+			"krok_repository":      resourceRepository(),
+			"krok_command":         resourceCommand(),
+			"krok_platform":        resourcePlatform(),
+			"krok_command_setting": resourceCommandSettings(),
 		},
 		DataSourcesMap: map[string]*schema.Resource{
 			"krok_command":   dataSourceKrokCommand(),

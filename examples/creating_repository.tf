@@ -15,6 +15,16 @@ resource "krok_platform" "github" {
 }
 
 /*
+ * Create a setting for this command.
+ */
+resource "krok_command_setting" "channel" {
+  key = "channel"
+  value = "krok"
+  in_vault = false
+  command_id = krok_command.slack_notification.id
+}
+
+/*
  * Create a Slack notification command.
  */
 resource "krok_command" "slack_notification" {
