@@ -29,7 +29,7 @@ resource "krok_command_setting" "channel" {
  */
 resource "krok_command" "slack_notification" {
   name = "slack-notification"
-  url = "https://github.com/krok-o/plugins/releases/download/v0.1.0/slack-notification.tar.gz"
+  image = "krokhook/slack-notification-command:v0.0.5"
   platforms = [1]
 }
 

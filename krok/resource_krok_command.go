@@ -14,14 +14,11 @@ import (
 
 const (
 	commandResourceNameFieldName         = "name"
-	commandResourceURLFieldName          = "url"
+	commandResourceImageFieldName        = "image"
 	commandResourceScheduleFieldName     = "schedule"
 	commandResourcePlatformsFieldName    = "platforms"
 	commandResourceRepositoriesFieldName = "repositories"
-	commandResourceFilenameFieldName     = "filename"
-	commandResourceHashFieldName         = "hash"
 	commandResourceEnabledFieldName      = "enabled"
-	commandResourceLocationFieldName     = "location"
 	// repoEventsFieldName                      = "name"
 )
 
@@ -37,7 +34,7 @@ func resourceCommand() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			commandResourceURLFieldName: {
+			commandResourceImageFieldName: {
 				Type:     schema.TypeString,
 				Required: true,
 			},
@@ -48,18 +45,6 @@ func resourceCommand() *schema.Resource {
 			commandResourceEnabledFieldName: {
 				Type:     schema.TypeBool,
 				Required: true,
-			},
-			commandResourceFilenameFieldName: {
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-			commandResourceHashFieldName: {
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-			commandResourceLocationFieldName: {
-				Type:     schema.TypeString,
-				Computed: true,
 			},
 			// TODO: Add support for updating this field.
 			commandResourcePlatformsFieldName: {
@@ -111,7 +96,7 @@ func resourceCommandCreate(d *schema.ResourceData, m interface{}) error {
 func expandCommandResource(d *schema.ResourceData) (*models.Command, error) {
 	var (
 		name     string
-		url      string
+		image    string
 		schedule string
 		enabled  bool
 	)
@@ -120,10 +105,10 @@ func expandCommandResource(d *schema.ResourceData) (*models.Command, error) {
 	} else {
 		return nil, fmt.Errorf("unable to find or parse field %s", commandResourceNameFieldName)
 	}
-	if v, ok := d.GetOk(commandResourceURLFieldName); ok {
-		url = v.(string)
+	if v, ok := d.GetOk(commandResourceImageFieldName); ok {
+		image = v.(string)
 	} else {
-		return nil, fmt.Errorf("unable to find or parse field %s", commandResourceURLFieldName)
+		return nil, fmt.Errorf("unable to find or parse field %s", commandResourceImageFieldName)
 	}
 	if v, ok := d.GetOk(commandResourceEnabledFieldName); ok {
 		enabled = v.(bool)
@@ -135,7 +120,7 @@ func expandCommandResource(d *schema.ResourceData) (*models.Command, error) {
 	}
 	command := &models.Command{
 		Name:     name,
-		URL:      url,
+		Image:    image,
 		Schedule: schedule,
 		Enabled:  enabled,
 	}
@@ -179,11 +164,8 @@ func flattenCommand(command *models.Command) map[string]interface{} {
 	}
 	flatCommand := map[string]interface{}{
 		commandResourceNameFieldName:         command.Name,
-		commandResourceURLFieldName:          command.URL,
+		commandResourceImageFieldName:        command.Image,
 		commandResourceScheduleFieldName:     command.Schedule,
-		commandResourceLocationFieldName:     command.Location,
-		commandResourceHashFieldName:         command.Hash,
-		commandResourceFilenameFieldName:     command.Filename,
 		commandResourceEnabledFieldName:      command.Enabled,
 		commandResourcePlatformsFieldName:    platforms,
 		commandResourceRepositoriesFieldName: repositories,
